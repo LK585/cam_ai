@@ -1,11 +1,11 @@
 // ============================================================
 // cam_display3.cpp —— 双线程摄像头预览（30fps）
-//   线程1 采集: V4L2 取帧(NV12) → 共享最新帧（流卡死自动重启）
-//   线程2 显示: 取最新帧 → NV12→XRGB → 写 fb[0]（30fps 节奏）
+//   线程1 采集: V4L2 取帧(NV12) -> 共享最新帧（流卡死自动重启）
+//   线程2 显示: 取最新帧 -> NV12->XRGB -> 写 fb[0]（30fps 节奏）
 // 用法: ./cam_display3 [R增益] [B增益]   （默认 1.0 1.0）
 //       软件白平衡手动调：R/B > 1 补偿偏绿（本板暗房实测约 R=1.7 B=1.6）
 // 每 30 帧打印画面 R/G/B 均值，方便按需微调
-// 退出：Ctrl+C / kill -TERM → 干净关流
+// 退出：Ctrl+C / kill -TERM -> 干净关流
 // ============================================================
 
 #include <cstdio>
@@ -36,7 +36,7 @@ struct SharedFrame {
     bool fresh = false;
 };
 
-// ---------------- NV12 → XRGB（显示尺寸，预计算缩放表） ----------------
+// ---------------- NV12 -> XRGB（显示尺寸，预计算缩放表） ----------------
 // rg/bg: R/B 通道增益（1.0 = 标准不缩放），补偿无 AWB 的偏色
 // sum_r/sum_g/sum_b: 输出本帧 R/G/B 累加值（均值用于调白平衡），可为 NULL
 static void nv12_to_xrgb(const uint8_t *y, const uint8_t *uv,
@@ -85,7 +85,7 @@ void capture_thread(V4l2Camera &cam, SharedFrame &sf, std::atomic<bool> &running
             if (pr <= 0) {
                 auto now = std::chrono::steady_clock::now();
                 if (std::chrono::duration_cast<std::chrono::milliseconds>(now - t_last).count() > 3000) {
-                    printf("⚠️ 流卡死，重启流\n");
+                    printf("[警告] 流卡死，重启流\n");
                     cam.v4l2_off_stream();
                     cam.v4l2_full_queue(V4L2_MEMORY_MMAP);
                     cam.v4l2_on_stream();
@@ -110,7 +110,7 @@ void capture_thread(V4l2Camera &cam, SharedFrame &sf, std::atomic<bool> &running
             if (++captured % 30 == 0)
                 printf("已采集 %ld 帧\n", captured);
         } catch (const std::exception &e) {
-            printf("⚠️ 采集异常: %s\n", e.what());
+            printf("[警告] 采集异常: %s\n", e.what());
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
     }
@@ -175,19 +175,19 @@ int main(int argc, char **argv) {
         cam.v4l2_mmap();
         cam.v4l2_on_stream();
     } catch (const std::exception &e) {
-        printf("❌ 摄像头失败: %s\n", e.what());
+        printf("[错误] 摄像头失败: %s\n", e.what());
         return -1;
     }
-    printf("✅ 摄像头就绪\n");
+    printf("[OK] 摄像头就绪\n");
 
     struct drm_disp drm = {};
     Drm_display disp(CARD_PATH, drm);
     if (disp.Drm_open_display(drm) < 0) {
-        printf("❌ 显示打开失败: %s\n", CARD_PATH);
+        printf("[错误] 显示打开失败: %s\n", CARD_PATH);
         cam.v4l2_off_stream();
         return -1;
     }
-    printf("✅ 显示就绪: %ux%u pitch=%u size=%u\n",
+    printf("[OK] 显示就绪: %ux%u pitch=%u size=%u\n",
            drm.w, drm.h, drm.fb[0].pitch, drm.fb[0].size);
 
     SharedFrame sf;

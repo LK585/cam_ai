@@ -1,5 +1,5 @@
 // ============================================================
-// cam_display2.cpp —— 摄像头视频流 → MIPI 屏（单线程，持续预览版）
+// cam_display2.cpp —— 摄像头视频流 -> MIPI 屏（单线程，持续预览版）
 // 改进（保证"一直显示"）：
 //  1) 主循环 try/catch —— 取帧/入队失败不再让程序退出
 //  2) poll 带 3 秒超时 —— 流卡死（无帧）时自动重启流
@@ -24,8 +24,8 @@
 static volatile sig_atomic_t g_stop = 0;
 static void on_signal(int) { g_stop = 1; }
 
-// NV12 → XRGB（显示尺寸），预计算缩放表，去掉每像素除法（30fps 必需）
-// 标准 YUV→RGB（BT.601），和朋友代码一致（不加白平衡/增益）
+// NV12 -> XRGB（显示尺寸），预计算缩放表，去掉每像素除法（30fps 必需）
+// 标准 YUV->RGB（BT.601），和朋友代码一致（不加白平衡/增益）
 static void nv12_to_xrgb(const uint8_t *y, const uint8_t *uv,
                          int sw, int sh, uint8_t *dst,
                          int dw, int dh, int dpitch) {
@@ -69,31 +69,31 @@ int main() {
         cam.v4l2_mmap();
         cam.v4l2_on_stream();
     } catch (const std::exception &e) {
-        printf("❌ 摄像头失败: %s\n", e.what());
+        printf("[错误] 摄像头失败: %s\n", e.what());
         return -1;
     }
-    printf("✅ 摄像头就绪\n");
+    printf("[OK] 摄像头就绪\n");
 
     struct drm_disp drm = {};
     Drm_display disp(CARD_PATH, drm);
     if (disp.Drm_open_display(drm) < 0) {
-        printf("❌ 显示打开失败\n");
+        printf("[错误] 显示打开失败\n");
         return -1;
     }
-    printf("✅ 显示就绪: %ux%u pitch=%u size=%u\n",
+    printf("[OK] 显示就绪: %ux%u pitch=%u size=%u\n",
            drm.w, drm.h, drm.fb[0].pitch, drm.fb[0].size);
     printf("持续预览中... Ctrl+C 退出（会干净关流）\n");
 
-    // 重启流（STREAMOFF → 全部重新入队 → STREAMON）
+    // 重启流（STREAMOFF -> 全部重新入队 -> STREAMON）
     auto restart_stream = [&]() -> bool {
         try {
             cam.v4l2_off_stream();
             cam.v4l2_full_queue(V4L2_MEMORY_MMAP);
             cam.v4l2_on_stream();
-            printf("✅ 流已重启，继续预览\n");
+            printf("[OK] 流已重启，继续预览\n");
             return true;
         } catch (const std::exception &e) {
-            printf("❌ 重启流失败: %s\n", e.what());
+            printf("[错误] 重启流失败: %s\n", e.what());
             return false;
         }
     };
@@ -104,16 +104,16 @@ int main() {
     long restart_cnt = 0;
     while (!g_stop) {
         try {
-            // 等新帧（3 秒超时；流卡死时 poll 超时 → 重启流）
+            // 等新帧（3 秒超时；流卡死时 poll 超时 -> 重启流）
             int pr = cam.v4l2_poll(3000);
             if (g_stop) break;
             if (pr == 0) {
-                printf("⚠️ 3秒无新帧（流卡死），重启流 #%ld\n", ++restart_cnt);
+                printf("[警告] 3秒无新帧（流卡死），重启流 #%ld\n", ++restart_cnt);
                 if (!restart_stream()) break;
                 continue;
             }
             if (pr < 0) {
-                perror("⚠️ poll 出错");
+                perror("[警告] poll 出错");
                 if (!restart_stream()) break;
                 continue;
             }
@@ -132,7 +132,7 @@ int main() {
             if (frame_count % 30 == 0)
                 printf("已显示 %ld 帧\n", frame_count);
         } catch (const std::exception &e) {
-            printf("⚠️ 取帧异常: %s → 重启流 #%ld\n", e.what(), ++restart_cnt);
+            printf("[警告] 取帧异常: %s -> 重启流 #%ld\n", e.what(), ++restart_cnt);
             if (!restart_stream()) break;
         }
     }

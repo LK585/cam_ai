@@ -1,8 +1,8 @@
 // ============================================================
 // cam_display_rga.cpp —— RGA 硬件加速预览（dma-buf fd 模式）
-//   单线程：DQBUF → RGA(相机dma-buf → 显示dma-buf) → QBUF
+//   单线程：DQBUF -> RGA(相机dma-buf -> 显示dma-buf) -> QBUF
 //   RGA 无 IOMMU，必须用 fd 模式（物理连续内存），不能用 vaddr 模式！
-//   自动曝光: 每 30 帧采样 Y 均值，暗→加曝光/数字增益，亮→减
+//   自动曝光: 每 30 帧采样 Y 均值，暗->加曝光/数字增益，亮->减
 // 编译:
 //   g++ -O2 cam_display_rga.cpp v4l2_cam.cpp display.cpp -o cam_display_rga \
 //       -I./rga_include/im2d_api -I/usr/include/libdrm -ldrm -lpthread -lrga
@@ -36,7 +36,7 @@ struct SensorCtrl {
     int dgain = 1024;
     bool sensor_open() {
         fd = open(SENSOR_SUBDEV, O_RDWR);
-        if (fd < 0) { printf("⚠️ 打不开传感器 %s\n", SENSOR_SUBDEV); return false; }
+        if (fd < 0) { printf("[警告] 打不开传感器 %s\n", SENSOR_SUBDEV); return false; }
         ok = true;
         return true;
     }
@@ -48,7 +48,7 @@ struct SensorCtrl {
     }
 };
 
-// ---------------- RGA: NV12(dma-buf) → XRGB8888(dma-buf) + 缩放 ----------------
+// ---------------- RGA: NV12(dma-buf) -> XRGB8888(dma-buf) + 缩放 ----------------
 static bool rga_convert(int src_fd, int sw, int sh,
                         int dst_fd, int dw, int dh, int dpitch) {
     rga_buffer_t src  = wrapbuffer_fd(src_fd, sw, sh, RK_FORMAT_YCbCr_420_SP);
@@ -91,38 +91,38 @@ int main() {
         cam.v4l2_mmap();
         cam.v4l2_on_stream();
     } catch (const std::exception &e) {
-        printf("❌ 摄像头失败: %s\n", e.what());
+        printf("[错误] 摄像头失败: %s\n", e.what());
         return -1;
     }
-    printf("✅ 摄像头就绪\n");
+    printf("[OK] 摄像头就绪\n");
 
     // 导出 8 个相机缓冲的 dma-buf fd（RGA 源）
     int cam_fd[8];
     for (int i = 0; i < 8; i++) {
         cam_fd[i] = cam.v4l2_export_fd(i);
-        if (cam_fd[i] < 0) { printf("❌ 相机缓冲 %d 导出失败\n", i); return -1; }
+        if (cam_fd[i] < 0) { printf("[错误] 相机缓冲 %d 导出失败\n", i); return -1; }
     }
-    printf("✅ 相机 dma-buf 导出成功\n");
+    printf("[OK] 相机 dma-buf 导出成功\n");
 
     struct drm_disp drm = {};
     Drm_display disp(CARD_PATH, drm);
     if (disp.Drm_open_display(drm) < 0) {
-        printf("❌ 显示打开失败: %s\n", CARD_PATH);
+        printf("[错误] 显示打开失败: %s\n", CARD_PATH);
         cam.v4l2_off_stream();
         return -1;
     }
-    printf("✅ 显示就绪: %ux%u pitch=%u size=%u\n",
+    printf("[OK] 显示就绪: %ux%u pitch=%u size=%u\n",
            drm.w, drm.h, drm.fb[0].pitch, drm.fb[0].size);
 
     // 导出显示 fb 的 dma-buf fd（RGA 目标）
     int dst_fd = disp.Drm_export_fb_fd(drm.fb[0]);
-    if (dst_fd < 0) { printf("❌ 显示 fb 导出失败\n"); return -1; }
-    printf("✅ 显示 dma-buf 导出成功\n");
+    if (dst_fd < 0) { printf("[错误] 显示 fb 导出失败\n"); return -1; }
+    printf("[OK] 显示 dma-buf 导出成功\n");
 
     SensorCtrl sc;
     sc.sensor_open();
 
-    // 单线程循环：DQBUF → RGA → QBUF
+    // 单线程循环：DQBUF -> RGA -> QBUF
     long frame_count = 0;
     auto t_last = std::chrono::steady_clock::now();
     while (!g_stop) {
@@ -132,7 +132,7 @@ int main() {
             if (pr <= 0) {
                 auto now = std::chrono::steady_clock::now();
                 if (std::chrono::duration_cast<std::chrono::milliseconds>(now - t_last).count() > 3000) {
-                    printf("⚠️ 流卡死，重启流\n");
+                    printf("[警告] 流卡死，重启流\n");
                     cam.v4l2_off_stream();
                     cam.v4l2_full_queue(V4L2_MEMORY_MMAP);
                     cam.v4l2_on_stream();
@@ -170,7 +170,7 @@ int main() {
             cam.v4l2_queue(V4L2_MEMORY_MMAP, f.index);
             t_last = std::chrono::steady_clock::now();
         } catch (const std::exception &e) {
-            printf("⚠️ 异常: %s\n", e.what());
+            printf("[警告] 异常: %s\n", e.what());
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
     }

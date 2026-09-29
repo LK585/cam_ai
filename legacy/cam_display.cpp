@@ -1,8 +1,8 @@
 // ============================================================
-// cam_display.cpp —— 摄像头视频流 → MIPI 屏幕持续显示（最小验证）
+// cam_display.cpp —— 摄像头视频流 -> MIPI 屏幕持续显示（最小验证）
 // 两线程：
-//   线程1 采集: V4L2 NV12 2592x1944 → 共享最新帧
-//   线程2 显示: NV12 → XRGB（软件白平衡补偿）→ DRM 双缓冲显示
+//   线程1 采集: V4L2 NV12 2592x1944 -> 共享最新帧
+//   线程2 显示: NV12 -> XRGB（软件白平衡补偿）-> DRM 双缓冲显示
 // 编译：g++ cam_display.cpp v4l2_cam.cpp display.cpp -o cam_display -ldrm -lpthread
 // ============================================================
 
@@ -24,7 +24,7 @@
 #define DISP_FPS     30
 
 // 软件白平衡增益（补偿 RK3576 无 3A 的偏绿）
-// 实测：G/R=1.26 → R×1.26；B 略低 → B×1.10
+// 实测：G/R=1.26 -> R×1.26；B 略低 -> B×1.10
 #define WB_R_GAIN    126    // R 增益 ×1.26
 #define WB_B_GAIN    110    // B 增益 ×1.10
 
@@ -36,7 +36,7 @@ struct SharedFrame {
     bool fresh = false;
 };
 
-// NV12 → XRGB（显示尺寸，最近邻缩放 + 软件白平衡）
+// NV12 -> XRGB（显示尺寸，最近邻缩放 + 软件白平衡）
 static void nv12_to_xrgb_wb(const uint8_t *y, const uint8_t *uv,
                             int sw, int sh, uint8_t *dst,
                             int dw, int dh, int dpitch) {
@@ -48,7 +48,7 @@ static void nv12_to_xrgb_wb(const uint8_t *y, const uint8_t *uv,
             int uv_i = (sy/2)*sw + (sx & ~1u);
             int yy = y[sy*sw+sx], u = uv[uv_i], v = uv[uv_i+1];
             int c = yy-16, d = u-128, e = v-128;
-            // 标准 YUV→RGB，然后 R/B 增益补偿偏绿
+            // 标准 YUV->RGB，然后 R/B 增益补偿偏绿
             int r = ((298*c + 409*e + 128) * WB_R_GAIN) >> 16;
             int g =  (298*c - 100*d - 208*e + 128) >> 8;
             int b = ((298*c + 516*d + 128) * WB_B_GAIN) >> 16;
@@ -129,18 +129,18 @@ int main() {
         cam.v4l2_mmap();
         cam.v4l2_on_stream();
     } catch (const std::exception &e) {
-        printf("❌ 摄像头失败: %s\n", e.what());
+        printf("[错误] 摄像头失败: %s\n", e.what());
         return -1;
     }
-    printf("✅ 摄像头就绪\n");
+    printf("[OK] 摄像头就绪\n");
 
     struct drm_disp drm = {};
     Drm_display disp(CARD_PATH, drm);
     if (disp.Drm_open_display(drm) < 0) {
-        printf("❌ 显示打开失败: %s\n", CARD_PATH);
+        printf("[错误] 显示打开失败: %s\n", CARD_PATH);
         return -1;
     }
-    printf("✅ 显示就绪: %ux%u (card0)\n", drm.w, drm.h);
+    printf("[OK] 显示就绪: %ux%u (card0)\n", drm.w, drm.h);
 
     SharedFrame sf;
     std::atomic<bool> running{true};

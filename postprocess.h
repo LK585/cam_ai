@@ -6,7 +6,7 @@
 //   cls:  (1, 80, g, g)  ← 80 类置信度（图内已融合 sigmoid，直接和阈值比！）
 //   sum:  (1, 1, g, g)   ← 总分（快速过滤用，也是原始值直接比）
 // 关键：cls/sum 不要 sigmoid（模型导出时已 sigmoid 过），
-//       否则背景格子的 ~0 值 sigmoid 后变 0.5，全部通过阈值 → 满屏小框
+//       否则背景格子的 ~0 值 sigmoid 后变 0.5，全部通过阈值 -> 满屏小框
 // ============================================================
 #pragma once
 #include <vector>
@@ -25,7 +25,7 @@ static const YoloScale YOLO_SCALES[] = {
 //                           scale2_box, scale2_cls, scale2_sum]
 #define NUM_CLASSES 80
 
-// DFL 解码：16 bins softmax → 加权和（等价官方 compute_dfl）
+// DFL 解码：16 bins softmax -> 加权和（等价官方 compute_dfl）
 static inline float dfl_decode(const float *dfl, int bin) {
     float sum = 0.0f, acc = 0.0f;
     float maxv = dfl[0];

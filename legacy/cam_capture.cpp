@@ -1,6 +1,6 @@
 // ============================================================
 // cam_capture.cpp —— 摄像头采集测试（独立验证 V4L2 取帧）
-// 目的：验证 OV5695 → rkisp mainpath 取帧链路
+// 目的：验证 OV5695 -> rkisp mainpath 取帧链路
 // 功能：
 //   1. 打开 /dev/video-camera0（= video42, rkisp mainpath）
 //   2. 设置 NV12 2592x1944（Multiplanar）
@@ -21,7 +21,7 @@
 #define CAM_H     1944
 #define FRAMES    30                     // 取 30 帧
 
-// NV12 → PPM（P6 格式，软件转换，最近邻缩放到 dw×dh 便于查看）
+// NV12 -> PPM（P6 格式，软件转换，最近邻缩放到 dw×dh 便于查看）
 static void nv12_to_ppm(const uint8_t *y, const uint8_t *uv,
                         int sw, int sh,
                         const char *path, int dw, int dh) {
@@ -62,10 +62,10 @@ int main() {
         cam.v4l2_mmap();
         cam.v4l2_on_stream();
     } catch (const std::exception &e) {
-        printf("❌ 摄像头初始化失败: %s\n", e.what());
+        printf("[错误] 摄像头初始化失败: %s\n", e.what());
         return -1;
     }
-    printf("✅ 摄像头就绪: %s  %dx%d NV12\n", CAM_PATH, CAM_W, CAM_H);
+    printf("[OK] 摄像头就绪: %s  %dx%d NV12\n", CAM_PATH, CAM_W, CAM_H);
 
     // ---------- 2. 取帧循环 ----------
     // 3A（AE/AWB）需要几十帧收敛，保存最后几帧
@@ -99,7 +99,7 @@ int main() {
                     fwrite(f.data[0], 1, (size_t)CAM_W*CAM_H*3/2, raw);
                 }
                 fclose(raw);
-                printf("✅ 已保存 %s\n", nv12_path);
+                printf("[OK] 已保存 %s\n", nv12_path);
             }
 
             // 转 PPM 便于查看
@@ -119,6 +119,6 @@ int main() {
 
     // ---------- 3. 关闭 ----------
     cam.v4l2_off_stream();
-    printf("✅ 采集测试完成，共 %d 帧\n", FRAMES);
+    printf("[OK] 采集测试完成，共 %d 帧\n", FRAMES);
     return 0;
 }

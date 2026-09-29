@@ -1,12 +1,12 @@
 // ============================================================
-// main.cpp —— RK3576 板端"摄像头→RKNN推理→MIPI屏显示"三线程程序
+// main.cpp —— RK3576 板端"摄像头->RKNN推理->MIPI屏显示"三线程程序
 // 架构：
-//   线程1 采集: V4L2 取帧(NV12) → 共享最新帧
-//   线程2 推理: NV12→640x640 RGB → RKNN → 检测结果
-//   线程3 显示: NV12→XRGB + 画框 → DRM 显示（30fps 刷新）
+//   线程1 采集: V4L2 取帧(NV12) -> 共享最新帧
+//   线程2 推理: NV12->640x640 RGB -> RKNN -> 检测结果
+//   线程3 显示: NV12->XRGB + 画框 -> DRM 显示（30fps 刷新）
 // 零 OpenCV 依赖
 // 已修正（相对初版）：
-//   - 显示线程不再每帧 SetCrtc（RK3576 每次 ~1s 会卡死）→ 只写 fb[0]
+//   - 显示线程不再每帧 SetCrtc（RK3576 每次 ~1s 会卡死）-> 只写 fb[0]
 //   - 分辨率 1280x720（已验证稳定）
 //   - 采集线程带 poll 超时 + 异常保护，可干净退出
 //   - SIGTERM/SIGINT 干净关流（timeout 强杀不再污染下次开流）
@@ -64,7 +64,7 @@ static std::vector<std::string> load_labels(const char *path) {
     return labels;
 }
 
-// NV12 → RGB(AI_SIZE x AI_SIZE)，最近邻缩放（喂模型）
+// NV12 -> RGB(AI_SIZE x AI_SIZE)，最近邻缩放（喂模型）
 static void nv12_to_rgb640(const uint8_t *y, const uint8_t *uv,
                            int sw, int sh, uint8_t *rgb) {
     for (int dy = 0; dy < AI_SIZE; dy++) {
@@ -108,7 +108,7 @@ static void draw_box(uint8_t *xrgb, int pitch, int w, int h,
     }
 }
 
-// NV12 → XRGB（显示尺寸，预计算缩放表，无每像素除法）
+// NV12 -> XRGB（显示尺寸，预计算缩放表，无每像素除法）
 static void nv12_to_xrgb(const uint8_t *y, const uint8_t *uv,
                          int sw, int sh, uint8_t *dst,
                          int dw, int dh, int dpitch) {
@@ -141,7 +141,7 @@ void capture_thread(V4l2Camera &cam, SharedFrame &sf, std::atomic<bool> &running
     while (running) {
         try {
             int pr = cam.v4l2_poll(500);      // 500ms 超时，保证能退出
-            if (pr <= 0) continue;            // 超时/出错 → 等下一轮
+            if (pr <= 0) continue;            // 超时/出错 -> 等下一轮
             V4l2Frame f = cam.v4l2_dequeue();
             {
                 std::lock_guard<std::mutex> lk(sf.mtx);
@@ -162,7 +162,7 @@ void capture_thread(V4l2Camera &cam, SharedFrame &sf, std::atomic<bool> &running
             sf.cv.notify_all();
             cam.v4l2_queue(V4L2_MEMORY_MMAP, f.index);
         } catch (const std::exception &e) {
-            printf("⚠️ 采集异常: %s\n", e.what());
+            printf("[警告] 采集异常: %s\n", e.what());
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
     }
@@ -263,33 +263,33 @@ int main() {
         cam.v4l2_mmap();
         cam.v4l2_on_stream();
     } catch (const std::exception &e) {
-        printf("❌ 摄像头失败: %s\n", e.what());
+        printf("[错误] 摄像头失败: %s\n", e.what());
         return -1;
     }
-    printf("✅ 摄像头就绪\n");
+    printf("[OK] 摄像头就绪\n");
 
     struct drm_disp drm = {};
     Drm_display disp(CARD_PATH, drm);
     if (disp.Drm_open_display(drm) < 0) {
-        printf("❌ 显示打开失败: %s\n", CARD_PATH);
+        printf("[错误] 显示打开失败: %s\n", CARD_PATH);
         cam.v4l2_off_stream();
         return -1;
     }
-    printf("✅ 显示就绪: %ux%u\n", drm.w, drm.h);
+    printf("[OK] 显示就绪: %ux%u\n", drm.w, drm.h);
 
     RknnInfer model;
     if (model.init(MODEL_PATH) < 0) {
-        printf("❌ 模型加载失败: %s\n", MODEL_PATH);
+        printf("[错误] 模型加载失败: %s\n", MODEL_PATH);
         return -1;
     }
-    printf("✅ RKNN 就绪\n");
+    printf("[OK] RKNN 就绪\n");
 
     std::vector<std::string> labels = load_labels(LABEL_PATH);
     if (labels.empty()) {
-        printf("❌ 类别文件加载失败: %s（请先拷贝 coco_80_labels_list.txt 到工程目录）\n", LABEL_PATH);
+        printf("[错误] 类别文件加载失败: %s（请先拷贝 coco_80_labels_list.txt 到工程目录）\n", LABEL_PATH);
         return -1;
     }
-    printf("✅ 类别加载 %zu 个，第一个: %s\n", labels.size(), labels[0].c_str());
+    printf("[OK] 类别加载 %zu 个，第一个: %s\n", labels.size(), labels[0].c_str());
 
     SharedFrame sf; SharedResult sr;
     std::atomic<bool> running{true};

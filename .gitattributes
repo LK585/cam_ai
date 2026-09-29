@@ -1,0 +1,9 @@
+# 统一换行符：源码保持 LF（工程跑在 Linux 板端）
+* text=auto eol=lf
+
+# 二进制文件不做换行转换
+*.png binary
+*.jpg binary
+*.bmp binary
+*.rknn binary
+*.so binary

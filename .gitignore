@@ -1,0 +1,27 @@
+# 编译产物（板端生成，不要提交）
+cam_ai
+cam_capture
+cam_display
+cam_display2
+cam_display3
+cam_display_rga
+*.o
+*.ko
+*.so
+
+# 调试输出
+frame*.nv12
+frame*.ppm
+frame*.bmp
+frame*.jpg
+*.log
+
+# 模型文件（体积大，按 README 自行获取）
+*.rknn
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

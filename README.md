@@ -97,6 +97,15 @@ cp <rknn_model_zoo>/examples/yolov8/model/yolov8.rknn            /userdata/cam_a
 cp <rknn_model_zoo>/examples/yolov8/model/coco_80_labels_list.txt /userdata/cam_ai/
 ```
 
+## 依赖
+
+| 依赖 | 用途 | 获取方式 |
+|---|---|---|
+| `librknnrt.so` | RKNN 运行时（板上） | Rockchip [rknpu2](https://github.com/airockchip/rknn-toolkit2) 运行库 |
+| `rknn_api.h` | 编译期头文件（本仓库已附带） | 同上（版权归 Rockchip 所有） |
+| `libdrm` | DRM/KMS 显示 | 板端 `libdrm-dev` 或系统自带（`libdrm.so`、`xf86drm.h`） |
+| `libpthread` | 多线程 | 系统自带 |
+
 ## 技术难点与解决
 
 | 问题 | 现象 | 原因与解决 |

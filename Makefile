@@ -5,8 +5,9 @@
 #   交叉编译:      make（用 SDK prebuilts 工具链）
 # ============================================================
 
-# 交叉编译器（RK3576 SDK prebuilts）
-CROSS    ?= /home/lk/workspace/taishanpi_sdk/TaishanPi-3-Linux/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
+# 交叉编译器前缀（按自己的 SDK 路径修改，或用 make CROSS=<前缀> 覆盖）
+# 板端本地编译请用: make CROSS= SYSROOT=
+CROSS    ?= /path/to/your-sdk/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
 
 CXX := $(CROSS)g++
 
